@@ -1,0 +1,77 @@
+---
+title: "practical machine learning"
+author: "koen klein willink"
+date: "28-6-2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load data
+transfer all unknown data into space
+
+``` {r data input}
+data1<-read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", na.strings=c("NA","#DIV/0!",""))
+
+validationdata1<-read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", na.strings=c("NA","#DIV/0!",""))
+
+ 
+```
+## libaries needed
+
+``` {r libraries}
+library(caret)
+library(randomForest)
+
+```
+  
+## Data cleansing
+first seven rows to be removed as they are not directly related to time and not numeric. Further clean all rows with NA and rows that are not in the testing set. 
+
+``` {r cleansing}
+cleancolums<-names(data1[,colSums(is.na(data1))==0])[8:59]
+data1<-data1[,c(cleancolums,"classe")]
+validationdata1<-validationdata1[,c(cleancolums,"problem_id")]
+dim(data1); dim(validationdata1)
+```
+
+## Partitioning
+create test and training set from cleaned data set. 
+
+```{r determine validation, test, training}  
+set.seed(538)
+inTrain <- createDataPartition(data1$classe, p=0.6, list=FALSE)
+Training <- data1[inTrain, ]
+Testing <- data1[-inTrain, ]
+dim(Training); dim(Testing)  
+```  
+
+## RandomForest model 
+Apply random forest model and show results. 
+
+``` {r randomForest}
+set.seed(385)
+FitrandForest <- randomForest(classe~., data=Training, ntree = 500)
+FitrandForest
+#Fit<-train(classe~.,method="rf",data=Training,ntree=500)
+#Fit1<-train(classe~.,method="rf",data=Training,ntree=500, #preProcess(method="PCA"))
+predictionTesting<-predict(FitrandForest,newdata=Testing)
+
+confusionMatrix(predictionTesting,Testing$classe)
+varImpPlot(FitrandForest)
+```
+
+
+
+
+
+
+Results are very good. Accuracy is over 99%. The MeanDecreaseGini coefficient steep. 
+
+## Predict on the validation set
+```{r prediction}
+predictionValuation<-predict(FitrandForest,newdata=validationdata1)
+predictionValuation
+```
